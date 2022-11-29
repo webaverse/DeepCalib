@@ -80,8 +80,8 @@ with tf.device('/gpu:0'):
     model = Model(input=main_input, output=[final_output_focal, final_output_distortion])
     model.load_weights(path_to_weights)
 
-    n_acc_focal = 0
-    n_acc_dist = 0
+    # n_acc_focal = 0
+    # n_acc_dist = 0
     # print(len(paths_test))
     file = open(filename_results, 'a')
     # for i, path in enumerate(paths_test):
@@ -102,10 +102,10 @@ with tf.device('/gpu:0'):
     prediction_focal = model.predict(image)[0]
     prediction_dist = model.predict(image)[1]
 
-    if np.argmax(prediction_focal[0]) == labels_test[i][0]:
-        n_acc_focal = n_acc_focal + 1
-    if np.argmax(prediction_dist[0]) == labels_test[i][1]:
-        n_acc_dist = n_acc_dist + 1
+    # if np.argmax(prediction_focal[0]) == labels_test[i][0]:
+    #     n_acc_focal = n_acc_focal + 1
+    # if np.argmax(prediction_dist[0]) == labels_test[i][1]:
+    #     n_acc_dist = n_acc_dist + 1
 
     # curr_focal_label = labels_test[i][0]
     curr_focal_pred = (prediction_focal[0][0] * (focal_end+1. - focal_start*1.) + focal_start*1. ) * (IMAGE_SIZE*1.0) / (INPUT_SIZE*1.0)
