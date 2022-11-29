@@ -64,71 +64,70 @@ def get_paths(IMAGE_FILE_PATH_DISTORTED):
 # get the path from the first command line argument
 path = sys.argv[1]
 
-with tf.device('/gpu:0'):
-    input_shape = (299, 299, 3)
-    main_input = Input(shape=input_shape, dtype='float32', name='main_input')
-    phi_model = InceptionV3(weights='imagenet', include_top=False, input_tensor=main_input, input_shape=input_shape)
-    phi_features = phi_model.output
-    phi_flattened = Flatten(name='phi-flattened')(phi_features)
-    final_output_focal = Dense(1, activation='sigmoid', name='output_focal')(phi_flattened)
-    final_output_distortion = Dense(1, activation='sigmoid', name='output_distortion')(phi_flattened)
+tf.device('/gpu:0')
+input_shape = (299, 299, 3)
+main_input = Input(shape=input_shape, dtype='float32', name='main_input')
+phi_model = InceptionV3(weights='imagenet', include_top=False, input_tensor=main_input, input_shape=input_shape)
+phi_features = phi_model.output
+phi_flattened = Flatten(name='phi-flattened')(phi_features)
+final_output_focal = Dense(1, activation='sigmoid', name='output_focal')(phi_flattened)
+final_output_distortion = Dense(1, activation='sigmoid', name='output_distortion')(phi_flattened)
 
-    layer_index = 0
-    for layer in phi_model.layers:
-        layer.name = layer.name + "_phi"
+layer_index = 0
+for layer in phi_model.layers:
+    layer.name = layer.name + "_phi"
 
-    model = Model(input=main_input, output=[final_output_focal, final_output_distortion])
-    model.load_weights(path_to_weights)
+model = Model(input=main_input, output=[final_output_focal, final_output_distortion])
+model.load_weights(path_to_weights)
 
-    # n_acc_focal = 0
-    # n_acc_dist = 0
-    # print(len(paths_test))
-    file = open(filename_results, 'a')
-    # for i, path in enumerate(paths_test):
-    # if i % 1000 == 0:
-    #     print(i,' ',len(paths_test))
-    i = 0
-    image = cv2.imread(path)
-    image = cv2.resize(image,(INPUT_SIZE,INPUT_SIZE))
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    image = image / 255.
-    image = image - 0.5
-    image = image * 2.
-    image = np.expand_dims(image,0)
+# n_acc_focal = 0
+# n_acc_dist = 0
+# print(len(paths_test))
+file = open(filename_results, 'a')
+# for i, path in enumerate(paths_test):
+# if i % 1000 == 0:
+#     print(i,' ',len(paths_test))
+i = 0
+image = cv2.imread(path)
+image = cv2.resize(image,(INPUT_SIZE,INPUT_SIZE))
+image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+image = image / 255.
+image = image - 0.5
+image = image * 2.
+image = np.expand_dims(image,0)
 
-    image = preprocess_input(image) 
+image = preprocess_input(image) 
 
-    # loop
-    prediction_focal = model.predict(image)[0]
-    prediction_dist = model.predict(image)[1]
+# loop
+prediction_focal = model.predict(image)[0]
+prediction_dist = model.predict(image)[1]
 
-    # if np.argmax(prediction_focal[0]) == labels_test[i][0]:
-    #     n_acc_focal = n_acc_focal + 1
-    # if np.argmax(prediction_dist[0]) == labels_test[i][1]:
-    #     n_acc_dist = n_acc_dist + 1
+# if np.argmax(prediction_focal[0]) == labels_test[i][0]:
+#     n_acc_focal = n_acc_focal + 1
+# if np.argmax(prediction_dist[0]) == labels_test[i][1]:
+#     n_acc_dist = n_acc_dist + 1
 
-    # curr_focal_label = labels_test[i][0]
-    curr_focal_pred = (prediction_focal[0][0] * (focal_end+1. - focal_start*1.) + focal_start*1. ) * (IMAGE_SIZE*1.0) / (INPUT_SIZE*1.0)
-    # curr_dist_label = labels_test[i][1]
-    curr_dist_pred = prediction_dist[0][0]*1.2
-    # fov = 2 * Math.atan(0.5 * 1000 / curr_focal_pred) * 180 / Math.PI;
-    fov = 2 * np.arctan(0.5 * 1000 / curr_focal_pred) * 180 / np.pi
-    s = json.dumps({
-        "focalLength": curr_focal_pred,
-        "fov": fov,
-        "distortion": curr_dist_pred
-    })
+# curr_focal_label = labels_test[i][0]
+curr_focal_pred = (prediction_focal[0][0] * (focal_end+1. - focal_start*1.) + focal_start*1. ) * (IMAGE_SIZE*1.0) / (INPUT_SIZE*1.0)
+# curr_dist_label = labels_test[i][1]
+curr_dist_pred = prediction_dist[0][0]*1.2
+# fov = 2 * Math.atan(0.5 * 1000 / curr_focal_pred) * 180 / Math.PI;
+fov = 2 * np.arctan(0.5 * 1000 / curr_focal_pred) * 180 / np.pi
+s = json.dumps({
+    "focalLength": curr_focal_pred,
+    "fov": fov,
+    "distortion": curr_dist_pred
+})
+# print(s)
+# file.write(path + '\tlabel_focal\t' + str(curr_focal_label) + '\tprediction_focal\t' + str(curr_focal_pred) + '\tlabel_dist\t' + str(curr_dist_label) + '\tprediction_dist\t' + str(curr_dist_pred)+'\n')
 
-    print(s)
-    # file.write(path + '\tlabel_focal\t' + str(curr_focal_label) + '\tprediction_focal\t' + str(curr_focal_pred) + '\tlabel_dist\t' + str(curr_dist_label) + '\tprediction_dist\t' + str(curr_dist_pred)+'\n')
+# print('focal:')
+# print(n_acc_focal)
+# print(len(paths_test))
+# print(n_acc_focal*1.0/(len(paths_test)*1.0))
 
-    # print('focal:')
-    # print(n_acc_focal)
-    # print(len(paths_test))
-    # print(n_acc_focal*1.0/(len(paths_test)*1.0))
-
-    # print('dist:')
-    # print(n_acc_dist)
-    # print(len(paths_test))
-    # print(n_acc_dist * 1.0 / (len(paths_test) * 1.0))
-    # file.close()
+# print('dist:')
+# print(n_acc_dist)
+# print(len(paths_test))
+# print(n_acc_dist * 1.0 / (len(paths_test) * 1.0))
+# file.close()
