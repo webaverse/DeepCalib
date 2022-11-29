@@ -111,10 +111,14 @@ with tf.device('/gpu:0'):
     curr_focal_pred = (prediction_focal[0][0] * (focal_end+1. - focal_start*1.) + focal_start*1. ) * (IMAGE_SIZE*1.0) / (INPUT_SIZE*1.0)
     # curr_dist_label = labels_test[i][1]
     curr_dist_pred = prediction_dist[0][0]*1.2
+    # fov = 2 * Math.atan(0.5 * 1000 / curr_focal_pred) * 180 / Math.PI;
+    fov = 2 * np.arctan(0.5 * 1000 / curr_focal_pred) * 180 / np.pi
     s = json.dumps({
         "focalLength": curr_focal_pred,
+        "fov": fov,
         "distortion": curr_dist_pred
     })
+
     print(s)
     # file.write(path + '\tlabel_focal\t' + str(curr_focal_label) + '\tprediction_focal\t' + str(curr_focal_pred) + '\tlabel_dist\t' + str(curr_dist_label) + '\tprediction_dist\t' + str(curr_dist_pred)+'\n')
 
