@@ -10,6 +10,7 @@ import numpy as np
 import glob
 import tensorflow as tf
 from keras.backend.tensorflow_backend import set_session
+import json
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"  
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
@@ -19,8 +20,8 @@ config.gpu_options.allow_growth = True
 config.allow_soft_placement = True
 set_session(tf.Session(config=config))
 
-IMAGE_FILE_PATH_DISTORTED = ""
-path_to_weights = 'weights_10_0.02.h5'
+IMAGE_FILE_PATH_DISTORTED = "./images/"
+path_to_weights = './weights/Regression/Single_net/weights_10_0.02.h5'
 IMAGE_SIZE = 299
 INPUT_SIZE = 299
 
@@ -56,9 +57,12 @@ def get_paths(IMAGE_FILE_PATH_DISTORTED):
 
     return paths_test, labels_test
 
-paths_test, labels_test = get_paths(IMAGE_FILE_PATH_DISTORTED)
+# paths_test, labels_test = get_paths(IMAGE_FILE_PATH_DISTORTED)
 
-print(len(paths_test), 'test samples')
+# print(len(paths_test), 'test samples')
+
+# get the path from the first command line argument
+path = sys.argv[1]
 
 with tf.device('/gpu:0'):
     input_shape = (299, 299, 3)
@@ -78,43 +82,49 @@ with tf.device('/gpu:0'):
 
     n_acc_focal = 0
     n_acc_dist = 0
-    print(len(paths_test))
+    # print(len(paths_test))
     file = open(filename_results, 'a')
-    for i, path in enumerate(paths_test):
-        if i % 1000 == 0:
-            print(i,' ',len(paths_test))
-        image = cv2.imread(path)
-        image = cv2.resize(image,(INPUT_SIZE,INPUT_SIZE))
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = image / 255.
-        image = image - 0.5
-        image = image * 2.
-        image = np.expand_dims(image,0)
+    # for i, path in enumerate(paths_test):
+    # if i % 1000 == 0:
+    #     print(i,' ',len(paths_test))
+    i = 0
+    image = cv2.imread(path)
+    image = cv2.resize(image,(INPUT_SIZE,INPUT_SIZE))
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = image / 255.
+    image = image - 0.5
+    image = image * 2.
+    image = np.expand_dims(image,0)
 
-        image = preprocess_input(image) 
+    image = preprocess_input(image) 
 
-        # loop
-        prediction_focal = model.predict(image)[0]
-        prediction_dist = model.predict(image)[1]
+    # loop
+    prediction_focal = model.predict(image)[0]
+    prediction_dist = model.predict(image)[1]
 
-        if np.argmax(prediction_focal[0]) == labels_test[i][0]:
-            n_acc_focal = n_acc_focal + 1
-        if np.argmax(prediction_dist[0]) == labels_test[i][1]:
-            n_acc_dist = n_acc_dist + 1
+    if np.argmax(prediction_focal[0]) == labels_test[i][0]:
+        n_acc_focal = n_acc_focal + 1
+    if np.argmax(prediction_dist[0]) == labels_test[i][1]:
+        n_acc_dist = n_acc_dist + 1
 
-        curr_focal_label = labels_test[i][0]
-        curr_focal_pred = (prediction_focal[0][0] * (focal_end+1. - focal_start*1.) + focal_start*1. ) * (IMAGE_SIZE*1.0) / (INPUT_SIZE*1.0)
-        curr_dist_label = labels_test[i][1]
-        curr_dist_pred = prediction_dist[0][0]*1.2
-        file.write(path + '\tlabel_focal\t' + str(curr_focal_label) + '\tprediction_focal\t' + str(curr_focal_pred) + '\tlabel_dist\t' + str(curr_dist_label) + '\tprediction_dist\t' + str(curr_dist_pred)+'\n')
+    # curr_focal_label = labels_test[i][0]
+    curr_focal_pred = (prediction_focal[0][0] * (focal_end+1. - focal_start*1.) + focal_start*1. ) * (IMAGE_SIZE*1.0) / (INPUT_SIZE*1.0)
+    # curr_dist_label = labels_test[i][1]
+    curr_dist_pred = prediction_dist[0][0]*1.2
+    s = json.dumps({
+        "focalLength": curr_focal_pred,
+        "distortion": curr_dist_pred
+    })
+    print(s)
+    # file.write(path + '\tlabel_focal\t' + str(curr_focal_label) + '\tprediction_focal\t' + str(curr_focal_pred) + '\tlabel_dist\t' + str(curr_dist_label) + '\tprediction_dist\t' + str(curr_dist_pred)+'\n')
 
-    print('focal:')
-    print(n_acc_focal)
-    print(len(paths_test))
-    print(n_acc_focal*1.0/(len(paths_test)*1.0))
+    # print('focal:')
+    # print(n_acc_focal)
+    # print(len(paths_test))
+    # print(n_acc_focal*1.0/(len(paths_test)*1.0))
 
-    print('dist:')
-    print(n_acc_dist)
-    print(len(paths_test))
-    print(n_acc_dist * 1.0 / (len(paths_test) * 1.0))
-    file.close()
+    # print('dist:')
+    # print(n_acc_dist)
+    # print(len(paths_test))
+    # print(n_acc_dist * 1.0 / (len(paths_test) * 1.0))
+    # file.close()
