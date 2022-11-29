@@ -69,6 +69,8 @@ def get_paths(IMAGE_FILE_PATH_DISTORTED):
 path = sys.argv[1]
 
 tf.device('/gpu:0')
+global graph
+graph = tf.get_default_graph() 
 input_shape = (299, 299, 3)
 main_input = Input(shape=input_shape, dtype='float32', name='main_input')
 phi_model = InceptionV3(weights='imagenet', include_top=False, input_tensor=main_input, input_shape=input_shape)
@@ -123,8 +125,7 @@ def predict():
     # if i % 1000 == 0:
     #     print(i,' ',len(paths_test))
     i = 0
-    # image = cv2.imread(path)
-    # image = cv2.imdecode(body, cv2.CV_LOAD_IMAGE_COLOR)
+    # decode the body with cv2
     image = cv2.imdecode(np.frombuffer(body, np.uint8), cv2.IMREAD_COLOR)
     image = cv2.resize(image,(INPUT_SIZE,INPUT_SIZE))
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -135,54 +136,55 @@ def predict():
 
     image = preprocess_input(image) 
 
-    # loop
-    print("loop 1")
-    prediction_focal = model.predict(image)[0]
-    print("loop 2")
-    prediction_dist = model.predict(image)[1]
-    print("loop 3")
+    with graph.as_default():
+        # loop
+        print("loop 1")
+        prediction_focal = model.predict(image)[0]
+        print("loop 2")
+        prediction_dist = model.predict(image)[1]
+        print("loop 3")
 
-    # if np.argmax(prediction_focal[0]) == labels_test[i][0]:
-    #     n_acc_focal = n_acc_focal + 1
-    # if np.argmax(prediction_dist[0]) == labels_test[i][1]:
-    #     n_acc_dist = n_acc_dist + 1
+        # if np.argmax(prediction_focal[0]) == labels_test[i][0]:
+        #     n_acc_focal = n_acc_focal + 1
+        # if np.argmax(prediction_dist[0]) == labels_test[i][1]:
+        #     n_acc_dist = n_acc_dist + 1
 
-    # curr_focal_label = labels_test[i][0]
-    curr_focal_pred = (prediction_focal[0][0] * (focal_end+1. - focal_start*1.) + focal_start*1. ) * (IMAGE_SIZE*1.0) / (INPUT_SIZE*1.0)
-    # curr_dist_label = labels_test[i][1]
-    curr_dist_pred = prediction_dist[0][0]*1.2
-    # fov = 2 * Math.atan(0.5 * 1000 / curr_focal_pred) * 180 / Math.PI;
-    fov = 2 * np.arctan(0.5 * 1000 / curr_focal_pred) * 180 / np.pi
-    s = json.dumps({
-        "focalLength": curr_focal_pred,
-        "fov": fov,
-        "distortion": curr_dist_pred
-    })
-    # print(s)
+        # curr_focal_label = labels_test[i][0]
+        curr_focal_pred = (prediction_focal[0][0] * (focal_end+1. - focal_start*1.) + focal_start*1. ) * (IMAGE_SIZE*1.0) / (INPUT_SIZE*1.0)
+        # curr_dist_label = labels_test[i][1]
+        curr_dist_pred = prediction_dist[0][0]*1.2
+        # fov = 2 * Math.atan(0.5 * 1000 / curr_focal_pred) * 180 / Math.PI;
+        fov = 2 * np.arctan(0.5 * 1000 / curr_focal_pred) * 180 / np.pi
+        s = json.dumps({
+            "focalLength": curr_focal_pred,
+            "fov": fov,
+            "distortion": curr_dist_pred
+        })
+        # print(s)
 
-    # respond
-    response = flask.Response(s)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Expose-Headers"] = "*"
-    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
-    response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
-    response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
-    # print("got options 2")
-    return response
-    # file.write(path + '\tlabel_focal\t' + str(curr_focal_label) + '\tprediction_focal\t' + str(curr_focal_pred) + '\tlabel_dist\t' + str(curr_dist_label) + '\tprediction_dist\t' + str(curr_dist_pred)+'\n')
+        # respond
+        response = flask.Response(s)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Expose-Headers"] = "*"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+        response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
+        # print("got options 2")
+        return response
+        # file.write(path + '\tlabel_focal\t' + str(curr_focal_label) + '\tprediction_focal\t' + str(curr_focal_pred) + '\tlabel_dist\t' + str(curr_dist_label) + '\tprediction_dist\t' + str(curr_dist_pred)+'\n')
 
-    # print('focal:')
-    # print(n_acc_focal)
-    # print(len(paths_test))
-    # print(n_acc_focal*1.0/(len(paths_test)*1.0))
+        # print('focal:')
+        # print(n_acc_focal)
+        # print(len(paths_test))
+        # print(n_acc_focal*1.0/(len(paths_test)*1.0))
 
-    # print('dist:')
-    # print(n_acc_dist)
-    # print(len(paths_test))
-    # print(n_acc_dist * 1.0 / (len(paths_test) * 1.0))
-    # file.close()
+        # print('dist:')
+        # print(n_acc_dist)
+        # print(len(paths_test))
+        # print(n_acc_dist * 1.0 / (len(paths_test) * 1.0))
+        # file.close()
 
 # listen as a threaded server on 0.0.0.0:$PORT
 port = int(os.environ.get("PORT", 5555))
