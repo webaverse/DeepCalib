@@ -12,6 +12,10 @@ import tensorflow as tf
 from keras.backend.tensorflow_backend import set_session
 import json
 
+import flask
+
+#
+
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"  
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
@@ -80,54 +84,98 @@ for layer in phi_model.layers:
 model = Model(input=main_input, output=[final_output_focal, final_output_distortion])
 model.load_weights(path_to_weights)
 
-# n_acc_focal = 0
-# n_acc_dist = 0
-# print(len(paths_test))
-file = open(filename_results, 'a')
-# for i, path in enumerate(paths_test):
-# if i % 1000 == 0:
-#     print(i,' ',len(paths_test))
-i = 0
-image = cv2.imread(path)
-image = cv2.resize(image,(INPUT_SIZE,INPUT_SIZE))
-image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-image = image / 255.
-image = image - 0.5
-image = image * 2.
-image = np.expand_dims(image,0)
+# flask server
+app = flask.Flask(__name__)
 
-image = preprocess_input(image) 
+# serve api routes
+@app.route("/", methods=["POST", "OPTIONS"])
+def predict():
+    if (flask.request.method == "OPTIONS"):
+        # print("got options 1")
+        response = flask.Response()
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Expose-Headers"] = "*"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+        response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
+        # print("got options 2")
+        return response
 
-# loop
-prediction_focal = model.predict(image)[0]
-prediction_dist = model.predict(image)[1]
+    # image_dir = os.path.dirname(os.path.dirname(__file__)) + '/test_images/'
+    # imgs_list = os.listdir(image_dir)
+    # imgs_list.sort()
+    # imgs_path = [os.path.join(image_dir, i) for i in imgs_list if i != 'outputs']
+    # image_dir_out = image_dir + '/outputs'
+    # os.makedirs(image_dir_out, exist_ok=True)
 
-# if np.argmax(prediction_focal[0]) == labels_test[i][0]:
-#     n_acc_focal = n_acc_focal + 1
-# if np.argmax(prediction_dist[0]) == labels_test[i][1]:
-#     n_acc_dist = n_acc_dist + 1
+    # for i, v in enumerate(imgs_path):
 
-# curr_focal_label = labels_test[i][0]
-curr_focal_pred = (prediction_focal[0][0] * (focal_end+1. - focal_start*1.) + focal_start*1. ) * (IMAGE_SIZE*1.0) / (INPUT_SIZE*1.0)
-# curr_dist_label = labels_test[i][1]
-curr_dist_pred = prediction_dist[0][0]*1.2
-# fov = 2 * Math.atan(0.5 * 1000 / curr_focal_pred) * 180 / Math.PI;
-fov = 2 * np.arctan(0.5 * 1000 / curr_focal_pred) * 180 / np.pi
-s = json.dumps({
-    "focalLength": curr_focal_pred,
-    "fov": fov,
-    "distortion": curr_dist_pred
-})
-print(s)
-# file.write(path + '\tlabel_focal\t' + str(curr_focal_label) + '\tprediction_focal\t' + str(curr_focal_pred) + '\tlabel_dist\t' + str(curr_dist_label) + '\tprediction_dist\t' + str(curr_dist_pred)+'\n')
+    # get body bytes
+    body = flask.request.get_data()
 
-# print('focal:')
-# print(n_acc_focal)
-# print(len(paths_test))
-# print(n_acc_focal*1.0/(len(paths_test)*1.0))
+    # n_acc_focal = 0
+    # n_acc_dist = 0
+    # print(len(paths_test))
+    # file = open(filename_results, 'a')
+    # for i, path in enumerate(paths_test):
+    # if i % 1000 == 0:
+    #     print(i,' ',len(paths_test))
+    i = 0
+    # image = cv2.imread(path)
+    image = cv2.imdecode(body, cv2.CV_LOAD_IMAGE_COLOR)
+    image = cv2.resize(image,(INPUT_SIZE,INPUT_SIZE))
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = image / 255.
+    image = image - 0.5
+    image = image * 2.
+    image = np.expand_dims(image,0)
 
-# print('dist:')
-# print(n_acc_dist)
-# print(len(paths_test))
-# print(n_acc_dist * 1.0 / (len(paths_test) * 1.0))
-# file.close()
+    image = preprocess_input(image) 
+
+    # loop
+    prediction_focal = model.predict(image)[0]
+    prediction_dist = model.predict(image)[1]
+
+    # if np.argmax(prediction_focal[0]) == labels_test[i][0]:
+    #     n_acc_focal = n_acc_focal + 1
+    # if np.argmax(prediction_dist[0]) == labels_test[i][1]:
+    #     n_acc_dist = n_acc_dist + 1
+
+    # curr_focal_label = labels_test[i][0]
+    curr_focal_pred = (prediction_focal[0][0] * (focal_end+1. - focal_start*1.) + focal_start*1. ) * (IMAGE_SIZE*1.0) / (INPUT_SIZE*1.0)
+    # curr_dist_label = labels_test[i][1]
+    curr_dist_pred = prediction_dist[0][0]*1.2
+    # fov = 2 * Math.atan(0.5 * 1000 / curr_focal_pred) * 180 / Math.PI;
+    fov = 2 * np.arctan(0.5 * 1000 / curr_focal_pred) * 180 / np.pi
+    s = json.dumps({
+        "focalLength": curr_focal_pred,
+        "fov": fov,
+        "distortion": curr_dist_pred
+    })
+    # print(s)
+
+    # respond
+    response = flask.Response(s)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Expose-Headers"] = "*"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+    response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
+    # print("got options 2")
+    return response
+    # file.write(path + '\tlabel_focal\t' + str(curr_focal_label) + '\tprediction_focal\t' + str(curr_focal_pred) + '\tlabel_dist\t' + str(curr_dist_label) + '\tprediction_dist\t' + str(curr_dist_pred)+'\n')
+
+    # print('focal:')
+    # print(n_acc_focal)
+    # print(len(paths_test))
+    # print(n_acc_focal*1.0/(len(paths_test)*1.0))
+
+    # print('dist:')
+    # print(n_acc_dist)
+    # print(len(paths_test))
+    # print(n_acc_dist * 1.0 / (len(paths_test) * 1.0))
+    # file.close()
