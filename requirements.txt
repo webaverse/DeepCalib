@@ -2,3 +2,4 @@ opencv-python
 tensorflow==1.7.0
 Keras==2.2.0
 tensorrt
+flask
