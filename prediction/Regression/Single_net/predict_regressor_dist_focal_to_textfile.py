@@ -27,8 +27,8 @@ INPUT_SIZE = 299
 
 filename_results = 'results.txt'
 
-if os.path.exists(filename_results):
-    sys.exit("file exists")
+# if os.path.exists(filename_results):
+#     sys.exit("file exists")
 
 focal_start = 40
 focal_end = 500
