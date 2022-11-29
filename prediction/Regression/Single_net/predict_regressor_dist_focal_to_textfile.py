@@ -88,7 +88,7 @@ model.load_weights(path_to_weights)
 app = flask.Flask(__name__)
 
 # serve api routes
-@app.route("/", methods=["POST", "OPTIONS"])
+@app.route("/predictFov", methods=["POST", "OPTIONS"])
 def predict():
     if (flask.request.method == "OPTIONS"):
         # print("got options 1")
@@ -124,7 +124,8 @@ def predict():
     #     print(i,' ',len(paths_test))
     i = 0
     # image = cv2.imread(path)
-    image = cv2.imdecode(body, cv2.CV_LOAD_IMAGE_COLOR)
+    # image = cv2.imdecode(body, cv2.CV_LOAD_IMAGE_COLOR)
+    image = cv2.imdecode(np.frombuffer(body, np.uint8), cv2.IMREAD_COLOR)
     image = cv2.resize(image,(INPUT_SIZE,INPUT_SIZE))
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     image = image / 255.
@@ -181,5 +182,5 @@ def predict():
     # file.close()
 
 # listen as a threaded server on 0.0.0.0:$PORT
-port = int(os.environ.get("PORT", 3333))
+port = int(os.environ.get("PORT", 5555))
 app.run(host="0.0.0.0", port=port, threaded=True)
