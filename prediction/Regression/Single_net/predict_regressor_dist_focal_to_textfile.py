@@ -6,7 +6,6 @@ from keras.applications.imagenet_utils import preprocess_input
 from keras.models import Model
 from keras.layers import Dense, Flatten, Input
 from keras import optimizers
-import keras
 import numpy as np
 import glob
 import tensorflow as tf
@@ -70,7 +69,6 @@ def get_paths(IMAGE_FILE_PATH_DISTORTED):
 path = sys.argv[1]
 
 tf.device('/gpu:0')
-keras.backend.clear_session()
 input_shape = (299, 299, 3)
 main_input = Input(shape=input_shape, dtype='float32', name='main_input')
 phi_model = InceptionV3(weights='imagenet', include_top=False, input_tensor=main_input, input_shape=input_shape)
@@ -138,8 +136,11 @@ def predict():
     image = preprocess_input(image) 
 
     # loop
+    print("loop 1")
     prediction_focal = model.predict(image)[0]
+    print("loop 2")
     prediction_dist = model.predict(image)[1]
+    print("loop 3")
 
     # if np.argmax(prediction_focal[0]) == labels_test[i][0]:
     #     n_acc_focal = n_acc_focal + 1
