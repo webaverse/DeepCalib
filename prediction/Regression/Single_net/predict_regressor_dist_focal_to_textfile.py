@@ -66,7 +66,7 @@ def get_paths(IMAGE_FILE_PATH_DISTORTED):
 # print(len(paths_test), 'test samples')
 
 # get the path from the first command line argument
-path = sys.argv[1]
+# path = sys.argv[1]
 
 tf.device('/gpu:0')
 global graph
