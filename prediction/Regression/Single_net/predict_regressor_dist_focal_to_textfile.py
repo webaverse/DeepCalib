@@ -118,7 +118,7 @@ s = json.dumps({
     "fov": fov,
     "distortion": curr_dist_pred
 })
-# print(s)
+print(s)
 # file.write(path + '\tlabel_focal\t' + str(curr_focal_label) + '\tprediction_focal\t' + str(curr_focal_pred) + '\tlabel_dist\t' + str(curr_dist_label) + '\tprediction_dist\t' + str(curr_dist_pred)+'\n')
 
 # print('focal:')
