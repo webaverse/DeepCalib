@@ -138,11 +138,11 @@ def predict():
 
     with graph.as_default():
         # loop
-        print("loop 1")
+        # print("loop 1")
         prediction_focal = model.predict(image)[0]
-        print("loop 2")
+        # print("loop 2")
         prediction_dist = model.predict(image)[1]
-        print("loop 3")
+        # print("loop 3")
 
         # if np.argmax(prediction_focal[0]) == labels_test[i][0]:
         #     n_acc_focal = n_acc_focal + 1
