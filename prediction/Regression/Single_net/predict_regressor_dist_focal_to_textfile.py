@@ -180,5 +180,6 @@ def predict():
     # print(n_acc_dist * 1.0 / (len(paths_test) * 1.0))
     # file.close()
 
-# listen as a threaded server on 0.0.0.0:80
-app.run(host="0.0.0.0", port=80, threaded=True)
+# listen as a threaded server on 0.0.0.0:$PORT
+port = int(os.environ.get("PORT", 3333))
+app.run(host="0.0.0.0", port=port, threaded=True)
